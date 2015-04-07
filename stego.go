@@ -38,7 +38,7 @@ type Scrambler interface {
 	Cap() int
 }
 
-// Encode encodes a slice of Byte in the Image using the Scrambler. If it fails for some reason,
+// Encode encodes a slice of Bytes in the Image using the Scrambler. If it fails for some reason,
 // an error is returned.
 func Encode(bytes []byte, img image.Image, scrambler Scrambler) (image.Image, error) {
 
