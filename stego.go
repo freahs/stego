@@ -1,5 +1,8 @@
 package stego
 
+// A simple package for image steganography which probably shouldn't be used for actual sensitive
+// data.
+
 import (
 	"encoding/binary"
 	"image"
@@ -17,17 +20,18 @@ const (
 	headerSize int  = 6 // Bytes in header
 )
 
-// Scrambler is used to scramble data in an image, but an implementation should not alter the image
-// itself.
+// Scrambler is used to distribute data in an image, but an implementation should not alter the
+// image itself.
 //
 // The Init method should put the scrambler in a state from which Next should always generate the
-// same sequence of results.
+// same sequence of results given the same image.
 //
-// Next should return whichever pixel and color channel that should be modified and/or read next.
+// Next should return whichever pixel and colour channel that should be modified or read next.
+// x, y and c should specify an unique colour coordinate, as long as it's not called more times than
+// the capacity returned by Cap.
 //
-// Cap should return the maximum nunmber of bits for which the scrambler can produce color
-// coordinates given the image used when last calling Init. If Init hasn't been called before Cap,
-// Cap should return 0.
+// Cap should return the maximum number of times Next can be guaranteed to produce unique colour
+// coordinates. If Init hasn't been called before Cap, Cap should return 0.
 type Scrambler interface {
 	Init(image image.Image)
 	Next() (x, y, c int)
@@ -75,7 +79,7 @@ func Decode(img image.Image, scrambler Scrambler) ([]byte, error) {
 
 	}
 
-	// ...abort if it's not formated correct.
+	// ...abort if it's not formatted correct.
 	if header[0] != SOH || header[5] != STX {
 		return nil, StegoError("Unknown header.")
 	}
@@ -101,7 +105,7 @@ func readByte(img *image.RGBA, scrambler Scrambler) (b byte) {
 		x, y, c := scrambler.Next() // Next pixel coords and channel.
 		p := img.PixOffset(x, y) + c
 		if img.Pix[p]&0x01 == 1 { // Read current bit.
-			b += (1 << i) // Icrease byte if necessary.
+			b += (1 << i) // Increase byte if necessary.
 		}
 	}
 	return
@@ -110,7 +114,7 @@ func readByte(img *image.RGBA, scrambler Scrambler) (b byte) {
 // writeByte writes a byte to a image using a scrambler.
 func writeByte(b byte, img *image.RGBA, scrambler Scrambler) {
 	var i uint8
-	for i = 0; i < 8; i++ { // Step throug each bit
+	for i = 0; i < 8; i++ { // Step through each bit
 		bit := (b>>i)&0x01 == 1
 		x, y, c := scrambler.Next()
 		p := img.PixOffset(x, y) + c
