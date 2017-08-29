@@ -40,5 +40,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(string(bytes))
+	fmt.Print(string(bytes))
 }
