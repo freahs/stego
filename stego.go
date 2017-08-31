@@ -21,33 +21,37 @@ const (
 )
 
 // stegoImage wraps the underlying byte array of an image and provides convenience methods
-// for reading and writing bits to
+// for reading and writing bits to it.
 type stegoImage struct {
 	pix       []uint8
 	pixOffset func(x, y int) int
 	step      int
 }
 
+// pos returns the index in the byte array corresponding to the first byte of color c in the pixel at x, y.
 func (s *stegoImage) pos(x, y, c int) int {
 	return s.pixOffset(x, y) + c*s.step
 }
 
+//Reads the LSB of the color c in the pixel at x, y.
 func (s *stegoImage) Read(x, y, c int) bool {
 	p := s.pos(x, y, c)
 	return s.pix[p]&0x01 == 1
 }
 
+// Enables the LSB (sets it to 1) of the color c in the pixel at x, y.
 func (s *stegoImage) Enable(x, y, c int) {
 	p := s.pos(x, y, c)
 	s.pix[p] = s.pix[p] | 0x01 // LSB = 1
 }
 
+// Disables the LSB (sets it to 0) of the color c in the pixel at x, y.
 func (s *stegoImage) Disable(x, y, c int) {
 	p := s.pos(x, y, c)
 	s.pix[p] = s.pix[p] & 0xFE // LSB = 0
 }
 
-func newstegoImage(img image.Image) (*stegoImage, error) {
+func newStegoImage(img image.Image) (*stegoImage, error) {
 	switch i := img.(type) {
 	case *image.RGBA:
 		return &stegoImage{i.Pix, i.PixOffset, 1}, nil
@@ -68,8 +72,8 @@ func newstegoImage(img image.Image) (*stegoImage, error) {
 // same sequence of results given the same image.
 //
 // Next should return whichever pixel and colour channel that should be modified or read next.
-// x, y and c should specify an unique colour coordinate, as long as it's not called more times than
-// the capacity returned by Cap.
+// Calling next should always result in unique color coordinates (x, y and c), as long as it's not
+// called more times than the capacity returned by Cap.
 //
 // Cap should return the maximum number of times Next can be guaranteed to produce unique colour
 // coordinates. If Init hasn't been called before Cap, Cap should return 0.
@@ -79,37 +83,11 @@ type Scrambler interface {
 	Cap() int
 }
 
-type DefaultScrambler struct {
-	i, w, h    int
-	chans, cap int
-}
-
-func (s *DefaultScrambler) Init(image image.Image) {
-	bounds := image.Bounds()
-	s.i = 0
-	s.w = bounds.Max.X - bounds.Min.X
-	s.h = bounds.Max.Y - bounds.Min.Y
-	s.chans = 3
-	s.cap = s.w * s.h * s.chans
-}
-
-func (s *DefaultScrambler) Next() (x, y, c int) {
-	x = (s.i / s.chans) % s.w
-	y = s.i / (s.chans * s.w)
-	c = s.i % s.chans
-	s.i++
-	return
-}
-
-func (s *DefaultScrambler) Cap() int {
-	return s.cap
-}
-
 // Encode encodes a slice of Bytes in the Image using the Scrambler. If it fails for some reason,
 // an error is returned.
 func Encode(bytes []byte, img image.Image, scrambler Scrambler) (image.Image, error) {
 
-	w, err := newstegoImage(img)
+	w, err := newStegoImage(img)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +115,7 @@ func Encode(bytes []byte, img image.Image, scrambler Scrambler) (image.Image, er
 // Decode reads bytes from a Image using a Scrambler. If it fails for some reason, an error is
 // returned
 func Decode(img image.Image, scrambler Scrambler) ([]byte, error) {
-	w, err := newstegoImage(img)
+	w, err := newStegoImage(img)
 	if err != nil {
 		return nil, err
 	}

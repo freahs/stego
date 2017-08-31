@@ -9,8 +9,36 @@ import (
 	"os"
 	"strings"
 
-	stego "github.com/freahs/stego/pkg"
+	"github.com/freahs/stego"
 )
+
+// DefaultScrambler implements the Scrambler interface and provides color coordinates in a linear
+// fashion
+type DefaultScrambler struct {
+	i, w, h    int
+	chans, cap int
+}
+
+func (s *DefaultScrambler) Init(image image.Image) {
+	bounds := image.Bounds()
+	s.i = 0
+	s.w = bounds.Max.X - bounds.Min.X
+	s.h = bounds.Max.Y - bounds.Min.Y
+	s.chans = 3
+	s.cap = s.w * s.h * s.chans
+}
+
+func (s *DefaultScrambler) Next() (x, y, c int) {
+	x = (s.i / s.chans) % s.w
+	y = s.i / (s.chans * s.w)
+	c = s.i % s.chans
+	s.i++
+	return
+}
+
+func (s *DefaultScrambler) Cap() int {
+	return s.cap
+}
 
 func encode(argc int, argv []string) {
 	inFile, err := os.Open(argv[2])
